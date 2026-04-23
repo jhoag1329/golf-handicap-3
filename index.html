@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyze Your Round!</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero hero-simple">
+      <div>
+        <h1>Analyze Your Round!</h1>
+        <p class="subtitle">Golf Strokes Gained Analyzer</p>
+        <p class="subhead">Enter one round of stats, estimate strokes gained by category, and identify the practice area most likely to improve scoring.</p>
+      </div>
+    </header>
+
+    {% if result and not error %}
+    <main class="results-only">
+      <section class="card results-card full-width">
+        <div class="results-topbar">
+          <h2>Round results</h2>
+          <a class="secondary-button" href="{{ url_for('index') }}">Analyze another round</a>
+        </div>
+
+        <div class="summary-grid top-summary">
+          <div class="metric big">
+            <span>Round score</span>
+            <strong>{{ result.round_score }}</strong>
+          </div>
+          <div class="metric big">
+            <span>Handicap-scaled SG</span>
+            <strong>{{ result.scaled_strokes_gained.Total }}</strong>
+          </div>
+          <div class="metric big">
+            <span>Training focus</span>
+            <strong>{{ result.weakest }}</strong>
+          </div>
+          <div class="metric">
+            <span>Strongest area</span>
+            <strong>{{ result.strongest }}</strong>
+          </div>
+        </div>
+
+        <h3>Estimated strokes gained</h3>
+        <table>
+          <thead>
+            <tr><th>Category</th><th>Estimated SG</th><th>Priority score</th></tr>
+          </thead>
+          <tbody>
+            {% for key in ['Off the Tee', 'Approach', 'Around the Green', 'Putting'] %}
+            <tr>
+              <td>{{ key }}</td>
+              <td class="{{ 'negative' if result.strokes_gained[key] < 0 else 'positive' }}">{{ result.strokes_gained[key] }}</td>
+              <td>{{ result.train_scores[key] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <h3>Strokes gained by category</h3>
+              <p>Diverging bars show where you gained or lost strokes versus your handicap-based expectation.</p>
+            </div>
+            <div class="chart-wrap bar-wrap">
+              <canvas id="sgBarChart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <h3>Skill profile</h3>
+              <p>Radar compares this round against your handicap benchmark in each part of the game.</p>
+            </div>
+            <div class="chart-wrap radar-wrap">
+              <canvas id="skillRadarChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <h3>Round rates</h3>
+        <div class="summary-grid rates">
+          <div class="metric"><span>Fairway %</span><strong>{{ result.rates.fairway_pct }}%</strong></div>
+          <div class="metric"><span>GIR %</span><strong>{{ result.rates.gir_pct }}%</strong></div>
+          <div class="metric"><span>Up-and-down %</span><strong>{{ result.rates.updown_pct }}%</strong></div>
+          <div class="metric"><span>1-putt %</span><strong>{{ result.rates.one_putt_pct }}%</strong></div>
+          <div class="metric"><span>3-putt %</span><strong>{{ result.rates.three_putt_pct }}%</strong></div>
+          <div class="metric"><span>Putts per round</span><strong>{{ result.rates.putts_per_round }}</strong></div>
+        </div>
+
+        <div class="recommendation">
+          <h3>{{ result.recommendation.headline }}</h3>
+          <p>{{ result.recommendation.details }}</p>
+        </div>
+
+        <div class="analysis-grid">
+          {% for item in result.analyses %}
+          <div class="analysis-card">
+            <div class="analysis-head">
+              <h4>{{ item.name }}</h4>
+              <span class="{{ 'negative' if item.sg < 0 else 'positive' }}">{{ item.sg }}</span>
+            </div>
+            <p>{{ item.text }}</p>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+    {% else %}
+    <main class="input-only">
+      <section class="card full-width">
+        <h2>Round input</h2>
+        {% if error %}
+          <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="post" class="stacked-form">
+          <div class="form-section single-line">
+            <h3>Round total</h3>
+            <div class="form-grid compact-grid one-col-mobile">
+              <label>Score for the round
+                <input type="number" step="1" min="1" name="round_score" value="{{ form.round_score }}" required>
+              </label>
+              <label>Handicap
+                <input type="number" step="0.1" min="-10" max="54" name="handicap" value="{{ form.handicap }}" required>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Fairway</h3>
+            <div class="form-grid">
+              <label>Fairways hit
+                <input type="number" step="1" min="0" name="fairways_hit" value="{{ form.fairways_hit }}" required>
+              </label>
+              <label>Fairway opportunities
+                <input type="number" step="1" min="1" name="fairway_opportunities" value="{{ form.fairway_opportunities }}" required>
+              </label>
+              <label>Average driving distance (yards)
+                <input type="number" step="0.1" min="0" name="driving_distance" value="{{ form.driving_distance }}" required>
+              </label>
+              <label>Tee-shot penalties
+                <input type="number" step="1" min="0" name="tee_penalties" value="{{ form.tee_penalties }}" required>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Greens</h3>
+            <div class="form-grid">
+              <label>Greens in regulation hit
+                <input type="number" step="1" min="0" name="gir_hit" value="{{ form.gir_hit }}" required>
+              </label>
+              <label>GIR opportunities
+                <input type="number" step="1" min="1" name="gir_opportunities" value="{{ form.gir_opportunities }}" required>
+              </label>
+              <label>Approach-shot penalties
+                <input type="number" step="1" min="0" name="approach_penalties" value="{{ form.approach_penalties }}" required>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Around the green / putting</h3>
+            <div class="form-grid">
+              <label>Up-and-down percentage
+                <input type="number" step="0.1" min="0" max="100" name="updown_pct" value="{{ form.updown_pct }}" required>
+              </label>
+              <label>1-putts
+                <input type="number" step="1" min="0" name="one_putts" value="{{ form.one_putts }}" required>
+              </label>
+              <label>2-putts
+                <input type="number" step="1" min="0" name="two_putts" value="{{ form.two_putts }}" required>
+              </label>
+              <label>3-putts
+                <input type="number" step="1" min="0" name="three_putts" value="{{ form.three_putts }}" required>
+              </label>
+              <label>Holes with putts
+                <input type="number" step="1" min="1" name="holes_with_putts" value="{{ form.holes_with_putts }}" required>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit">Analyze round</button>
+        </form>
+      </section>
+    </main>
+    {% endif %}
+  </div>
+  {% if result and not error %}
+  <script>
+    const sgLabels = ["Off the Tee", "Approach", "Around the Green", "Putting"];
+    const sgValues = [
+      {{ result.strokes_gained['Off the Tee']|tojson }},
+      {{ result.strokes_gained['Approach']|tojson }},
+      {{ result.strokes_gained['Around the Green']|tojson }},
+      {{ result.strokes_gained['Putting']|tojson }}
+    ];
+
+    const barColors = sgValues.map(value => value >= 0 ? 'rgba(34, 197, 94, 0.85)' : 'rgba(248, 113, 113, 0.85)');
+    const barBorders = sgValues.map(value => value >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(248, 113, 113, 1)');
+    const sgMin = Math.min(...sgValues, 0);
+    const sgMax = Math.max(...sgValues, 0);
+    const sgBound = Math.max(2, Math.ceil(Math.max(Math.abs(sgMin), Math.abs(sgMax)) + 0.5));
+
+    new Chart(document.getElementById('sgBarChart'), {
+      type: 'bar',
+      data: {
+        labels: sgLabels,
+        datasets: [{
+          data: sgValues,
+          backgroundColor: barColors,
+          borderColor: barBorders,
+          borderWidth: 1.5,
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.raw;
+                return `${value > 0 ? '+' : ''}${value.toFixed(2)} SG`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            min: -sgBound,
+            max: sgBound,
+            grid: { color: 'rgba(255,255,255,0.08)' },
+            ticks: {
+              color: '#9fb0cf',
+              callback: function(value) {
+                return value > 0 ? `+${value}` : `${value}`;
+              }
+            },
+            border: { color: 'rgba(255,255,255,0.12)' }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: '#ecf2ff' },
+            border: { color: 'rgba(255,255,255,0.12)' }
+          }
+        }
+      }
+    });
+
+    const fairwayPct = {{ result.rates.fairway_pct|tojson }};
+    const benchmarkFairwayPct = {{ result.benchmark.fairway_pct|tojson }};
+    const girPct = {{ result.rates.gir_pct|tojson }};
+    const benchmarkGirPct = {{ result.benchmark.gir_pct|tojson }};
+    const updownPct = {{ result.rates.updown_pct|tojson }};
+    const benchmarkUpdownPct = {{ result.benchmark.updown_pct|tojson }};
+    const puttsPerRound = {{ result.rates.putts_per_round|tojson }};
+    const benchmarkPutts = {{ result.benchmark.putts_per_round|tojson }};
+    const drivingDistance = {{ form.driving_distance|tojson }};
+    const benchmarkDistance = {{ result.benchmark.driving_distance|tojson }};
+
+    function clampScore(value) {
+      return Math.max(0, Math.min(100, value));
+    }
+
+    const rawSkillScores = [
+      clampScore((((fairwayPct / Math.max(benchmarkFairwayPct, 1)) * 55) + ((drivingDistance / Math.max(benchmarkDistance, 1)) * 45))),
+      clampScore((girPct / Math.max(benchmarkGirPct, 1)) * 100),
+      clampScore((updownPct / Math.max(benchmarkUpdownPct, 1)) * 100),
+      clampScore((benchmarkPutts / Math.max(puttsPerRound, 1)) * 100)
+    ];
+
+    const minSkill = Math.min(...rawSkillScores);
+    const maxSkill = Math.max(...rawSkillScores);
+    const skillRange = Math.max(maxSkill - minSkill, 1);
+    const skillScores = rawSkillScores.map(value => 2 + ((value - minSkill) / skillRange) * 8);
+
+    new Chart(document.getElementById('skillRadarChart'), {
+      type: 'radar',
+      data: {
+        labels: sgLabels,
+        datasets: [
+          {
+            label: 'This round',
+            data: skillScores,
+            backgroundColor: 'rgba(103, 232, 249, 0.18)',
+            borderColor: 'rgba(103, 232, 249, 1)',
+            pointBackgroundColor: 'rgba(103, 232, 249, 1)',
+            pointBorderColor: 'rgba(103, 232, 249, 1)',
+            pointRadius: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${sgLabels[context.dataIndex]}: ${rawSkillScores[context.dataIndex].toFixed(0)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          r: {
+            min: 0,
+            max: 10,
+            ticks: {
+              display: false,
+              backdropColor: 'transparent'
+            },
+            angleLines: { color: 'rgba(255,255,255,0.10)' },
+            grid: { color: 'rgba(255,255,255,0.10)' },
+            pointLabels: { color: '#ecf2ff', font: { size: 13 } }
+          }
+        }
+      }
+    });
+  </script>
+  {% endif %}
+</body>
+</html>

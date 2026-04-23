@@ -1,0 +1,74 @@
+{
+  "source_note": "Break X Golf handicap benchmark table transcribed from the January 5, 2026 article 'Average golf stats by handicap: What Changes From 25 To Scratch?' Values are round-level averages by handicap band.",
+  "source_date": "2026-01-05",
+  "source_url": "https://breakxgolf.com/golf-stats-by-handicap/",
+  "handicap_benchmarks": {
+    "0": {
+      "avg_score": 74.6,
+      "driving_distance": 274.0,
+      "fairway_pct": 0.565,
+      "gir_pct": 0.568,
+      "updown_pct": 0.5,
+      "putts_per_round": 31.3
+    },
+    "5": {
+      "avg_score": 79.0,
+      "driving_distance": 258.0,
+      "fairway_pct": 0.51,
+      "gir_pct": 0.461,
+      "updown_pct": 0.377,
+      "putts_per_round": 32.5
+    },
+    "10": {
+      "avg_score": 84.6,
+      "driving_distance": 247.0,
+      "fairway_pct": 0.493,
+      "gir_pct": 0.373,
+      "updown_pct": 0.316,
+      "putts_per_round": 33.9
+    },
+    "15": {
+      "avg_score": 89.3,
+      "driving_distance": 226.0,
+      "fairway_pct": 0.481,
+      "gir_pct": 0.264,
+      "updown_pct": 0.251,
+      "putts_per_round": 34.8
+    },
+    "20": {
+      "avg_score": 93.7,
+      "driving_distance": 219.0,
+      "fairway_pct": 0.428,
+      "gir_pct": 0.224,
+      "updown_pct": 0.217,
+      "putts_per_round": 36.1
+    },
+    "25": {
+      "avg_score": 98.6,
+      "driving_distance": 217.0,
+      "fairway_pct": 0.43,
+      "gir_pct": 0.187,
+      "updown_pct": 0.203,
+      "putts_per_round": 37.0
+    }
+  },
+  "pga_baseline": {
+    "source_note": "Official PGA TOUR 2026 season averages pulled from PGA TOUR Stats pages on 2026-04-21. Values are stored as decimals where applicable.",
+    "source_date": "2026-04-21",
+    "source_urls": {
+      "fairway_pct": "https://www.pgatour.com/stats/detail/102",
+      "driving_distance": "https://www.pgatour.com/stats/detail/317",
+      "gir_pct": "https://www.pgatour.com/stats/detail/103",
+      "updown_pct": "https://www.pgatour.com/stats/detail/130",
+      "one_putt_pct": "https://www.pgatour.com/stats/detail/413",
+      "three_putt_pct": "https://www.pgatour.com/stats/detail/426"
+    },
+    "fairway_pct": 0.5852,
+    "driving_distance": 291.8,
+    "gir_pct": 0.6503,
+    "updown_pct": 0.6152,
+    "one_putt_pct": 0.4132,
+    "three_putt_pct": 0.0262,
+    "distance_adjustment_per_yard": 0.0008
+  }
+}
